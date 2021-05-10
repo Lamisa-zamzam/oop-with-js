@@ -155,6 +155,7 @@ class Store {
     static addContact(contact) {
         //contacts from LocalStorage
         const contacts = Store.getContact("contacts");
+        // checks if contact with the phone number exists
         const matchedPhones = contacts
             ? contacts.filter(
                   (storedContact) => storedContact.phone === contact.phone
@@ -285,7 +286,6 @@ setEventListener("delete-multiple-btn", "click", (e) => {
                 1
             );
         });
-        console.log(allContacts);
         handleLocalStorageSet("contacts", allContacts);
         window.location.reload();
     }
