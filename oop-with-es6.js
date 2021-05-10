@@ -19,8 +19,12 @@ const handleProgressDisplay = (functionsAfterDisplayNone, params) => {
     }, 1000);
 };
 
-const handleContactSet = (contacts) => {
-    localStorage.setItem("contacts", JSON.stringify(contacts));
+const handleLocalStorageSet = (itemKey, itemValue) => {
+    localStorage.setItem(itemKey, JSON.stringify(itemValue));
+};
+
+const setSelectedState = (e) => {
+    e.target.parentElement.parentElement.children[6].textContent = "Selected";
 };
 
 // Local Storage Class
@@ -45,7 +49,9 @@ class UI {
             <td>${contact.email}</td>
             <td>${contact.phone}</td>
             <td>${contact.birthday}</td>
+            <td><a class="btn select" style="padding: 0">Select</a></td>
             <td><a class="btn btn-floating delete">x</a></td>
+            <td id="selected-state">Not Selected</td>
         `;
         contactList.appendChild(row);
     }
@@ -99,8 +105,8 @@ class UI {
 
 // Local Storage Class
 class Store {
-    static getContact() {
-        const localStorageContacts = localStorage.getItem("contacts");
+    static getContact(contactListName) {
+        const localStorageContacts = localStorage.getItem(contactListName);
         let contact;
         if (localStorageContacts === null) {
             contact = [];
@@ -109,38 +115,87 @@ class Store {
         }
         return contact;
     }
+
     static displayContact() {
-        const contacts = Store.getContact();
+        const contacts = Store.getContact("contacts");
         contacts.forEach((contact) => {
             // Add  to UI
             ui.addContactToList(contact);
         });
     }
+
     static addContact(contact) {
         //contacts from LocalStorage
-        const contacts = Store.getContact();
+        const contacts = Store.getContact("contacts");
         // Push New contact into contact array with previous array
         contacts.push(contact);
-        handleContactSet(contacts);
+        handleLocalStorageSet("contacts", contacts);
+    }
+
+    static selectContact(e) {
+        const phone =
+            e.target.parentElement.parentElement.children[2].textContent;
+        const contacts = Store.getContact("contacts");
+        const localStorageContacts = localStorage.getItem("selectedContacts");
+        let selectedContactsList;
+        if (localStorageContacts === null) {
+            selectedContactsList = [];
+        } else {
+            selectedContactsList = JSON.parse(localStorageContacts);
+        }
+        if (selectedContactsList[0]) {
+            const ifSelected = selectedContactsList.filter(
+                (selectedContact) => selectedContact.phone === phone
+            );
+            if (ifSelected[0]) {
+                alert("Already Selected");
+            } else {
+                setSelectedState(e);
+                const newSelectedContact = contacts.filter(
+                    (contact) => contact.phone === phone
+                );
+                const newSelectedContactList = [
+                    ...selectedContactsList,
+                    newSelectedContact[0],
+                ];
+                localStorage.setItem(
+                    "selectedContacts",
+                    JSON.stringify(newSelectedContactList)
+                );
+            }
+        } else {
+            setSelectedState(e);
+            const newSelectedContact = contacts.filter(
+                (contact) => contact.phone === phone
+            );
+            const newSelectedContactList = [
+                ...selectedContactsList,
+                newSelectedContact[0],
+            ];
+            localStorage.setItem(
+                "selectedContacts",
+                JSON.stringify(newSelectedContactList)
+            );
+        }
     }
 
     static removeContact(phone) {
-        const contacts = Store.getContact();
+        const contacts = Store.getContact("contacts");
         contacts.forEach((contact, index) => {
             if (contact.phone === phone) {
                 contacts.splice(index, 1);
             }
         });
-        handleContactSet(contacts);
+        handleLocalStorageSet("contacts", contacts);
     }
 }
-
 // Instantiate UI
 const ui = new UI();
-
 // DOM Load Event
-document.addEventListener("DOMContentLoaded", Store.displayContact());
-
+document.addEventListener("DOMContentLoaded", () => {
+    Store.displayContact();
+    localStorage.removeItem("selectedContacts");
+});
 // Submit Event Listener
 setEventListener("contact-form", "submit", (e) => {
     e.preventDefault();
@@ -148,7 +203,7 @@ setEventListener("contact-form", "submit", (e) => {
     const name = findElementById("name").value,
         email = findElementById("email").value,
         phone = findElementById("phone").value;
-        birthday = findElementById("birthday").value;
+    birthday = findElementById("birthday").value;
     // Instantiate Contact
     const contact = new Contact(name, email, phone, birthday);
     // Validate
@@ -170,16 +225,39 @@ setEventListener("contact-form", "submit", (e) => {
     }
 });
 
-// X Button Event
+// Action Buttons Event
 setEventListener("contact-list", "click", (e) => {
-    if (e.target.classList.contains("delete")) {
-        if (confirm("Are you sure?")) {
-            handleProgressDisplay(() => {
-                ui.deleteContact(e.target);
-            }, e);
-        }
-    }
     e.preventDefault();
+    const classesList = e.target.classList;
+    if (classesList.contains("delete") && confirm("Are you sure?")) {
+        handleProgressDisplay(() => {
+            ui.deleteContact(e.target);
+        }, e);
+    } else if (classesList.contains("select")) {
+        Store.selectContact(e);
+        findElementById("delete-multiple-btn").style.display = "block";
+    }
+});
+
+setEventListener("delete-multiple-btn", "click", (e) => {
+    e.preventDefault();
+    if (confirm("Are you sure?")) {
+        const selectedContacts = JSON.parse(
+            localStorage.getItem("selectedContacts")
+        );
+        const allContacts = JSON.parse(localStorage.getItem("contacts"));
+        selectedContacts.map((selectedContact) => {
+            allContacts.splice(
+                allContacts.findIndex(
+                    (contact) => contact.phone === selectedContact.phone
+                ),
+                1
+            );
+        });
+        console.log(allContacts);
+        localStorage.setItem("contacts", JSON.stringify(allContacts));
+        window.location.reload();
+    }
 });
 
 // Search / Filter
