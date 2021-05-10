@@ -1,30 +1,52 @@
+// Gets elements by id or query
 const findElementById = (id) => document.getElementById(id);
 const findElementByQuery = (query) => document.querySelector(query);
+
+// sets event listener to element by id
 const setEventListener = (id, eventListened, eventFunction) => {
     findElementById(id).addEventListener(eventListened, eventFunction);
 };
 
+// sets progress bar display
 const setProgressDisplay = (display) => {
     findElementByQuery(".progress").style.display = display;
 };
 
+// handles progress bar showing and hiding
 const handleProgressDisplay = (functionsAfterDisplayNone, params) => {
-    // Show Progress
+    // Shows Progress
     setProgressDisplay("block");
     // Timeout 1 Second
     setTimeout(() => {
-        // hide Progress
+        // hides Progress
         setProgressDisplay("none");
         functionsAfterDisplayNone(params);
     }, 1000);
 };
 
+// sets an item to local storage
 const handleLocalStorageSet = (itemKey, itemValue) => {
-    localStorage.setItem(itemKey, JSON.stringify(itemValue));
+    localStorage.setItem(itemKey, handleJSONData(itemValue, "stringify"));
 };
 
+// gets an item from local storage
+const handleLocalStorageGet = (itemKey) => {
+    const item = localStorage.getItem(itemKey);
+    return item;
+};
+
+// sets "Selected" state to contacts
 const setSelectedState = (e) => {
     e.target.parentElement.parentElement.children[6].textContent = "Selected";
+};
+
+// handles JSON parse and stringify
+const handleJSONData = (data, action) => {
+    if (action === "parse") {
+        return JSON.parse(data);
+    } else {
+        return JSON.stringify(data);
+    }
 };
 
 // Local Storage Class
@@ -39,11 +61,12 @@ class Contact {
 
 // UI Class
 class UI {
+    // adds to contact list
     addContactToList(contact) {
         const contactList = findElementById("contact-list");
-        // Create tr Element
+        // Creates tr Element
         const row = document.createElement("tr");
-        // Insert Column
+        // Inserts Column
         row.innerHTML = `
             <td>${contact.name}</td>
             <td>${contact.email}</td>
@@ -56,18 +79,19 @@ class UI {
         contactList.appendChild(row);
     }
 
+    // shows alert
     showAlert(getMsg, getClass) {
-        // Create div
+        // Creates div
         const div = document.createElement("div");
-        // Add Classes
+        // Adds Classes
         div.className = `alert alert-${getClass}`;
-        // Add Text
+        // Adds Text
         div.appendChild(document.createTextNode(getMsg));
-        // Get Parent
+        // Gets Parent
         const card = findElementByQuery(".card");
-        // Get Form
+        // Gets Form
         const cardAction = findElementByQuery(".card-action");
-        // Insert Alert
+        // Inserts Alert
         card.insertBefore(div, cardAction);
         // Timeout 3 Seconds for alert dismiss
         setTimeout(() => {
@@ -75,15 +99,18 @@ class UI {
         }, 2000);
     }
 
+    // deletes contact
     deleteContact(target) {
         const contactList = target.parentElement.parentElement;
+        // removes from UI
         contactList.remove();
-        //Remove from Local Storage
+        //Removes from Local Storage
         Store.removeContact(contactList.children[2].textContent);
-        // Show message
+        // Shows message
         this.showAlert("Contact Removed!", "danger");
     }
 
+    // clears all the input fields
     clearFields() {
         findElementById("name").value = "";
         findElementById("phone").value = "";
@@ -91,6 +118,7 @@ class UI {
         findElementById("birthday").value = "";
     }
 
+    // searches for a contact
     searchName(text) {
         const rows = document.querySelectorAll("#contact-list tr");
         rows.forEach((row) => {
@@ -106,12 +134,12 @@ class UI {
 // Local Storage Class
 class Store {
     static getContact(contactListName) {
-        const localStorageContacts = localStorage.getItem(contactListName);
+        const localStorageContacts = handleLocalStorageGet(contactListName);
         let contact;
         if (localStorageContacts === null) {
             contact = [];
         } else {
-            contact = JSON.parse(localStorageContacts);
+            contact = handleJSONData(localStorageContacts, "parse");
         }
         return contact;
     }
@@ -127,42 +155,45 @@ class Store {
     static addContact(contact) {
         //contacts from LocalStorage
         const contacts = Store.getContact("contacts");
-        // Push New contact into contact array with previous array
-        contacts.push(contact);
-        handleLocalStorageSet("contacts", contacts);
+        const matchedPhones = contacts
+            ? contacts.filter(
+                  (storedContact) => storedContact.phone === contact.phone
+              )
+            : [];
+        if (!matchedPhones[0]) {
+            //Add contact to list
+            ui.addContactToList(contact);
+            // Push a new contact with unique number into the contact array
+            contacts.push(contact);
+            handleLocalStorageSet("contacts", contacts);
+            // Show Success
+            ui.showAlert("New Contact Added!", "success");
+        } else {
+            handleProgressDisplay(() => {
+                ui.showAlert("Phone Number must be unique", "danger");
+            });
+        }
     }
 
     static selectContact(e) {
+        // phone number of the selected contact
         const phone =
             e.target.parentElement.parentElement.children[2].textContent;
         const contacts = Store.getContact("contacts");
-        const localStorageContacts = localStorage.getItem("selectedContacts");
+        const localStorageContacts = handleLocalStorageGet("selectedContacts");
         let selectedContactsList;
-        if (localStorageContacts === null) {
-            selectedContactsList = [];
-        } else {
-            selectedContactsList = JSON.parse(localStorageContacts);
-        }
-        if (selectedContactsList[0]) {
-            const ifSelected = selectedContactsList.filter(
-                (selectedContact) => selectedContact.phone === phone
-            );
-            if (ifSelected[0]) {
-                alert("Already Selected");
-            } else {
-                setSelectedState(e);
-                const newSelectedContact = contacts.filter(
-                    (contact) => contact.phone === phone
-                );
-                const newSelectedContactList = [
-                    ...selectedContactsList,
-                    newSelectedContact[0],
-                ];
-                localStorage.setItem(
-                    "selectedContacts",
-                    JSON.stringify(newSelectedContactList)
-                );
-            }
+        // checks if there is any selected contact
+        selectedContactsList = localStorageContacts
+            ? handleJSONData(localStorageContacts, "parse")
+            : [];
+        // checks if the current contact is already selected
+        const ifSelected = selectedContactsList[0]
+            ? selectedContactsList.filter(
+                  (selectedContact) => selectedContact.phone === phone
+              )
+            : [];
+        if (ifSelected[0]) {
+            alert("Already Selected");
         } else {
             setSelectedState(e);
             const newSelectedContact = contacts.filter(
@@ -172,10 +203,7 @@ class Store {
                 ...selectedContactsList,
                 newSelectedContact[0],
             ];
-            localStorage.setItem(
-                "selectedContacts",
-                JSON.stringify(newSelectedContactList)
-            );
+            handleLocalStorageSet("selectedContacts", newSelectedContactList);
         }
     }
 
@@ -196,6 +224,7 @@ document.addEventListener("DOMContentLoaded", () => {
     Store.displayContact();
     localStorage.removeItem("selectedContacts");
 });
+
 // Submit Event Listener
 setEventListener("contact-form", "submit", (e) => {
     e.preventDefault();
@@ -213,19 +242,15 @@ setEventListener("contact-form", "submit", (e) => {
         });
     } else {
         handleProgressDisplay(() => {
-            //Add contact to list
-            ui.addContactToList(contact);
-            // Add contact to Local Storage
-            Store.addContact(contact);
-            // Show Success
-            ui.showAlert("New Contact Added!", "success");
             // Clear Fields
             ui.clearFields();
         }, contact);
+        // Add contact to Local Storage
+        Store.addContact(contact);
     }
 });
 
-// Action Buttons Event
+// X Button Event
 setEventListener("contact-list", "click", (e) => {
     e.preventDefault();
     const classesList = e.target.classList;
@@ -239,13 +264,19 @@ setEventListener("contact-list", "click", (e) => {
     }
 });
 
+// multiple-delete button event
 setEventListener("delete-multiple-btn", "click", (e) => {
     e.preventDefault();
     if (confirm("Are you sure?")) {
-        const selectedContacts = JSON.parse(
-            localStorage.getItem("selectedContacts")
+        const selectedContacts = handleJSONData(
+            handleLocalStorageGet("selectedContacts"),
+            "parse"
         );
-        const allContacts = JSON.parse(localStorage.getItem("contacts"));
+        const allContacts = handleJSONData(
+            handleLocalStorageGet("contacts"),
+            "parse"
+        );
+        // deleting all the selected contacts from the contacts list
         selectedContacts.map((selectedContact) => {
             allContacts.splice(
                 allContacts.findIndex(
@@ -255,7 +286,7 @@ setEventListener("delete-multiple-btn", "click", (e) => {
             );
         });
         console.log(allContacts);
-        localStorage.setItem("contacts", JSON.stringify(allContacts));
+        handleLocalStorageSet("contacts", allContacts);
         window.location.reload();
     }
 });
