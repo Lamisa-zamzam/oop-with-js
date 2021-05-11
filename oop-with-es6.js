@@ -211,10 +211,12 @@ class Store {
     static removeContact(phone) {
         const contacts = Store.getContact("contacts");
         contacts.splice(
-            (contact) => String(contact.phone) !== String(phone),
+            contacts.findIndex(
+                (contact) => contact.phone === phone
+            ),
             1
         );
-        handleLocalStorageSet("contacts", remainingContacts);
+        handleLocalStorageSet("contacts", contacts);
     }
 }
 // Instantiate UI
