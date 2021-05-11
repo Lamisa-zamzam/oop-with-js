@@ -67,15 +67,13 @@ class UI {
         // Creates tr Element
         const row = document.createElement("tr");
         // Inserts Column
-        row.innerHTML = `
-        <td>${contact.name}</td>
+        row.innerHTML = `<td>${contact.name}</td>
         <td>${contact.email}</td>
         <td>${contact.phone}</td>
         <td>${contact.birthday}</td>
         <td><a class="btn select" style="padding: 0">Select</a></td>
         <td><a class="btn btn-floating delete">x</a></td>
-        <td id="selected-state">Not Selected</td>
-        `;
+        <td>Not Selected</td>`;
         contactList.appendChild(row);
     }
 
@@ -210,12 +208,11 @@ class Store {
 
     static removeContact(phone) {
         const contacts = Store.getContact("contacts");
-        contacts.forEach((contact, index) => {
-            if (contact.phone === phone) {
-                contacts.splice(index, 1);
-            }
-        });
-        handleLocalStorageSet("contacts", contacts);
+        contacts.splice(
+            (contact) => String(contact.phone) !== String(phone),
+            1
+        );
+        handleLocalStorageSet("contacts", remainingContacts);
     }
 }
 // Instantiate UI
