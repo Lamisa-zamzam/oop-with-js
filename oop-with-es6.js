@@ -68,13 +68,13 @@ class UI {
         const row = document.createElement("tr");
         // Inserts Column
         row.innerHTML = `
-            <td>${contact.name}</td>
-            <td>${contact.email}</td>
-            <td>${contact.phone}</td>
-            <td>${contact.birthday}</td>
-            <td><a class="btn select" style="padding: 0">Select</a></td>
-            <td><a class="btn btn-floating delete">x</a></td>
-            <td id="selected-state">Not Selected</td>
+        <td>${contact.name}</td>
+        <td>${contact.email}</td>
+        <td>${contact.phone}</td>
+        <td>${contact.birthday}</td>
+        <td><a class="btn select" style="padding: 0">Select</a></td>
+        <td><a class="btn btn-floating delete">x</a></td>
+        <td id="selected-state">Not Selected</td>
         `;
         contactList.appendChild(row);
     }
